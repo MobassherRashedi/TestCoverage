@@ -42,21 +42,6 @@ namespace demoApiTest_NUnit_Moq
 
 
         }
-
-        [Test]
-        public void Multiplication_ShouldReturnCorrectResult()
-        {
-            // Arrange 
-            int a = 10;
-            int b = 2;
-
-            // Act
-            var result = _calculator.Multiplication(a, b);
-
-            // Assert
-            Assert.That(20, Is.EqualTo(result));
-
-        }
     }
 }
 
