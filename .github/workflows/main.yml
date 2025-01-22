@@ -1,0 +1,60 @@
+name: CI Workflow
+
+on:
+  push:
+    branches:
+      - '**' # Trigger on push to any branch
+  pull_request:
+    branches:
+      - develop
+      - main # Trigger on pull requests to develop and main branches
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Setup .NET
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 9.0 # Ensure .NET 9.0 is used
+
+    # Step 3: Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore src/demoApi/demoApi.csproj # Specify the path to your .csproj file
+
+    # Step 4: Build solution
+    - name: Build solution
+      run: dotnet build src/demoApi/demoApi.csproj --no-restore --configuration Release
+
+    # Step 5: Run tests and collect code coverage
+    - name: Run tests and collect code coverage
+      run: |
+        dotnet test src/demoApi/demoApi.csproj --no-build --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --logger trx \
+          -p:CollectCoverage=true \
+          -p:CoverletOutput=TestResults/ \
+          -p:CoverletOutputFormat=cobertura
+
+    # Step 6: Upload coverage reports to Codecov
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # Use your Codecov token from GitHub secrets
+        files: "src/demoApi/TestResults/coverage.cobertura.xml"
+        flags: unittests
+        name: codecov-umbrella
+
+    # Step 7: Publish test results for debugging
+    - name: Upload test results (debugging)
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: src/demoApi/TestResults/
