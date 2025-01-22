@@ -1,0 +1,57 @@
+name: CI Workflow
+
+on:
+  push:
+    branches:
+      - '**' # Trigger on push to any branch
+  pull_request:
+    branches:
+      - develop
+      - main # Trigger on pull requests to develop and main branches
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Setup .NET
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 9.0 # Specify the .NET version you're using
+
+    # Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore src/demoApi/demoApi.csproj # Path to your .csproj file
+
+    # Build the solution
+    - name: Build solution
+      run: dotnet build src/demoApi/demoApi.csproj --no-restore --configuration Release
+
+    # Run tests and collect code coverage
+    - name: Run tests and collect code coverage
+      run: |
+        dotnet test src/demoApi/demoApi.csproj --no-build --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --logger trx
+
+    # Upload code coverage reports to Codecov
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # Set in your GitHub repo secrets
+        files: "**/coverage.cobertura.xml"
+        flags: unittests
+        name: codecov-umbrella
+
+    # Publish test results (optional, for better PR experience)
+    - name: Publish test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: '**/*.trx'
